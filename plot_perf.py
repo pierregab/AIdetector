@@ -1,5 +1,6 @@
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
 
 def visualize_predictions(model, val_data, val_labels, use_real_positions=True, num_samples=10000):
     """
@@ -96,4 +97,41 @@ def visualize_predictions(model, val_data, val_labels, use_real_positions=True, 
 
     plt.tight_layout()
     plt.savefig('actual_vs_predicted_scatter.png')  # Save the plot to a file
+    plt.close()
+
+    # Calculate standard deviations
+    std_actual_x = np.std(sample_labels_rescaled[:, 0])
+    std_predicted_x = np.std(predicted_labels_rescaled[:, 0])
+    std_actual_y = np.std(sample_labels_rescaled[:, 1])
+    std_predicted_y = np.std(predicted_labels_rescaled[:, 1])
+
+    # Plot distributions and calculate standard deviations
+    plt.figure(figsize=(14, 6))
+
+    plt.subplot(1, 2, 1)
+    plt.hist(sample_labels_rescaled[:, 0], bins=30, alpha=0.5, label='Actual X', density=True)
+    plt.hist(predicted_labels_rescaled[:, 0], bins=30, alpha=0.5, label='Predicted X', density=True)
+    xmin, xmax = plt.xlim()
+    x = np.linspace(xmin, xmax, 100)
+    p = norm.pdf(x, np.mean(sample_labels_rescaled[:, 0]), np.std(sample_labels_rescaled[:, 0]))
+    plt.plot(x, p, 'k', linewidth=2)
+    plt.title(f'Distribution of X Coordinates\nStd actual: {std_actual_x:.2f}, Std predicted: {std_predicted_x:.2f}')
+    plt.xlabel('Value')
+    plt.ylabel('Density')
+    plt.legend()
+
+    plt.subplot(1, 2, 2)
+    plt.hist(sample_labels_rescaled[:, 1], bins=30, alpha=0.5, label='Actual Y', density=True)
+    plt.hist(predicted_labels_rescaled[:, 1], bins=30, alpha=0.5, label='Predicted Y', density=True)
+    xmin, xmax = plt.xlim()
+    x = np.linspace(xmin, xmax, 100)
+    p = norm.pdf(x, np.mean(sample_labels_rescaled[:, 1]), np.std(sample_labels_rescaled[:, 1]))
+    plt.plot(x, p, 'k', linewidth=2)
+    plt.title(f'Distribution of Y Coordinates\nStd actual: {std_actual_y:.2f}, Std predicted: {std_predicted_y:.2f}')
+    plt.xlabel('Value')
+    plt.ylabel('Density')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig('distributions.png')  # Save the plot to a file
     plt.close()
