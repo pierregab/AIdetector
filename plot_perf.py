@@ -1,63 +1,99 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
-def visualize_predictions(model, val_dataset, use_real_positions=True):
+def visualize_predictions(model, val_data, val_labels, use_real_positions=True, num_samples=10000):
     """
-    Visualize the model predictions compared to the actual labels.
+    Visualize the model predictions compared to the actual labels with random sample selection.
 
     Parameters:
     - model (tf.keras.Model): The trained model.
-    - val_dataset (tf.data.Dataset): The validation dataset.
+    - val_data (np.ndarray): The validation data.
+    - val_labels (np.ndarray): The validation labels.
     - use_real_positions (bool): Flag to indicate whether to use real positions for comparison. Default is True.
+    - num_samples (int): Number of random samples to select for visualization. Default is 10000.
     """
-    # Extract data and labels from the validation dataset
-    val_data = []
-    val_labels = []
-    for data, labels in val_dataset:
-        val_data.append(data.numpy())
-        val_labels.append(labels.numpy())
-    
-    val_data = np.concatenate(val_data, axis=0)
-    val_labels = np.concatenate(val_labels, axis=0)
+    # Select a random sample or batch from the dataset
+    sample_indices = np.random.choice(val_data.shape[0], size=num_samples, replace=False)
+    sample_data = val_data[sample_indices]
+    sample_labels = val_labels[sample_indices]
 
     # Make predictions using the model
-    predictions = model.predict(val_data)
+    predicted_labels = model.predict(sample_data)
 
     # Rescale the labels and predictions if they were normalized
     max_abs_value = np.max(np.abs(val_labels))
-    val_labels_rescaled = val_labels * max_abs_value
-    predictions_rescaled = predictions * max_abs_value
+    sample_labels_rescaled = sample_labels * max_abs_value
+    predicted_labels_rescaled = predicted_labels * max_abs_value
 
-    # Plot the results
-    fig, ax = plt.subplots(1, 2, figsize=(12, 6))
+    # Calculate percentage errors
+    percentage_errors = 100 * (predicted_labels_rescaled - sample_labels_rescaled) / sample_labels_rescaled  # element-wise operation
 
-    ax[0].scatter(val_labels_rescaled[:, 0], predictions_rescaled[:, 0], alpha=0.5, label='X coordinate')
-    ax[0].plot([val_labels_rescaled[:, 0].min(), val_labels_rescaled[:, 0].max()], 
-               [val_labels_rescaled[:, 0].min(), val_labels_rescaled[:, 0].max()], 'r--')
-    ax[0].set_xlabel('Actual')
-    ax[0].set_ylabel('Predicted')
-    ax[0].set_title('X Coordinate')
-    ax[0].legend()
+    # Calculate absolute errors
+    absolute_errors = np.abs(predicted_labels_rescaled - sample_labels_rescaled)
 
-    ax[1].scatter(val_labels_rescaled[:, 1], predictions_rescaled[:, 1], alpha=0.5, label='Y coordinate')
-    ax[1].plot([val_labels_rescaled[:, 1].min(), val_labels_rescaled[:, 1].max()], 
-               [val_labels_rescaled[:, 1].min(), val_labels_rescaled[:, 1].max()], 'r--')
-    ax[1].set_xlabel('Actual')
-    ax[1].set_ylabel('Predicted')
-    ax[1].set_title('Y Coordinate')
-    ax[1].legend()
+    # Extract x and y percentage errors
+    x_errors = percentage_errors[:, 0]
+    y_errors = percentage_errors[:, 1]
 
-    plt.suptitle('Model Predictions vs Actual Labels (Real Positions)' if use_real_positions else 'Model Predictions vs Actual Labels (ML Positions)')
+    # Extract x and y absolute errors
+    x_abs_errors = absolute_errors[:, 0]
+    y_abs_errors = absolute_errors[:, 1]
+
+    # Plot histograms of percentage errors
+    plt.figure(figsize=(14, 6))
+
+    plt.subplot(1, 2, 1)
+    plt.hist(x_errors, bins=20, color='skyblue', edgecolor='black')
+    plt.title('Histogram of X Coordinate Percentage Errors')
+    plt.xlabel('Percentage Error (%)')
+    plt.ylabel('Frequency')
+
+    plt.subplot(1, 2, 2)
+    plt.hist(y_errors, bins=20, color='salmon', edgecolor='black')
+    plt.title('Histogram of Y Coordinate Percentage Errors')
+    plt.xlabel('Percentage Error (%)')
+    plt.ylabel('Frequency')
+
     plt.tight_layout()
     plt.show()
 
-# Example usage
-# Assuming 'model' is your trained model and 'val_dataset' is your validation dataset
-# visualize_predictions(model, val_dataset, use_real_positions=True)
+    # Plot histograms of absolute errors
+    plt.figure(figsize=(14, 6))
 
+    plt.subplot(1, 2, 1)
+    plt.hist(x_abs_errors, bins=20, color='skyblue', edgecolor='black')
+    plt.title('Histogram of X Coordinate Absolute Errors')
+    plt.xlabel('Absolute Error')
+    plt.ylabel('Frequency')
 
-# Load and process the data
-#file_path = 'H01_labelCNN_50x50grid_RAWPM.bin'
-#train_dataset, val_dataset = load_and_process_data(file_path, use_real_positions=True)
+    plt.subplot(1, 2, 2)
+    plt.hist(y_abs_errors, bins=20, color='salmon', edgecolor='black')
+    plt.title('Histogram of Y Coordinate Absolute Errors')
+    plt.xlabel('Absolute Error')
+    plt.ylabel('Frequency')
 
-# Assuming 'model' is your trained model
-#visualize_predictions(model, val_dataset, use_real_positions=True)
+    plt.tight_layout()
+    plt.show()
+
+    # Scatter plots of actual vs predicted values
+    plt.figure(figsize=(14, 6))
+
+    plt.subplot(1, 2, 1)
+    plt.scatter(sample_labels_rescaled[:, 0], predicted_labels_rescaled[:, 0], alpha=0.5)
+    plt.title('Actual vs Predicted X Coordinates')
+    plt.xlabel('Actual X')
+    plt.ylabel('Predicted X')
+    plt.plot([sample_labels_rescaled[:, 0].min(), sample_labels_rescaled[:, 0].max()], 
+             [sample_labels_rescaled[:, 0].min(), sample_labels_rescaled[:, 0].max()], 'r--')
+
+    plt.subplot(1, 2, 2)
+    plt.scatter(sample_labels_rescaled[:, 1], predicted_labels_rescaled[:, 1], alpha=0.5)
+    plt.title('Actual vs Predicted Y Coordinates')
+    plt.xlabel('Actual Y')
+    plt.ylabel('Predicted Y')
+    plt.plot([sample_labels_rescaled[:, 1].min(), sample_labels_rescaled[:, 1].max()], 
+             [sample_labels_rescaled[:, 1].min(), sample_labels_rescaled[:, 1].max()], 'r--')
+
+    plt.tight_layout()
+    plt.show()
+
