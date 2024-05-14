@@ -2,23 +2,11 @@ import tensorflow as tf
 from tensorflow.keras import layers, models, regularizers
 from Loading_data import load_and_process_data
 from Plot_training import plot_training_history
-from sklearn.model_selection import train_test_split
 import numpy as np
 
 # Load and process the data
 file_path = 'H01_labelCNN_50x50grid_RAWPM.bin'
-train_data, train_labels = load_and_process_data(file_path, num_samples=1000000, energy_threshold=500)
-
-# Make sure data is scaled appropriately
-train_data = train_data / np.max(train_data)  # Normalize by max value
-train_labels = train_labels / 16 if train_labels.max() > 1 else train_labels  # Normalize only if necessary
-
-# Split the data into training and validation sets
-train_data, val_data, train_labels, val_labels = train_test_split(train_data, train_labels, test_size=0.2, random_state=42)
-
-# Create tf.data.Dataset
-train_dataset = tf.data.Dataset.from_tensor_slices((train_data, train_labels)).batch(32).prefetch(tf.data.AUTOTUNE)
-val_dataset = tf.data.Dataset.from_tensor_slices((val_data, val_labels)).batch(32).prefetch(tf.data.AUTOTUNE)
+train_dataset, val_dataset = load_and_process_data(file_path, use_real_positions=True)
 
 # Define the model with the best hyperparameters
 def build_best_model():
