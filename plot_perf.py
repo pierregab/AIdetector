@@ -139,21 +139,33 @@ def visualize_predictions(model, val_data, val_labels, use_real_positions=True, 
     plt.savefig('distributions.png')  # Save the plot to a file
     plt.close()
 
-    # Plot error distributions
+    # Calculate standard deviations of the errors
+    std_error_x = np.std(errors[:, 0])
+    std_error_y = np.std(errors[:, 1])
+
+    # Plot error distributions with Gaussian fit
     plt.figure(figsize=(14, 6))
 
     plt.subplot(1, 2, 1)
-    plt.hist(errors[:, 0], bins=30, alpha=0.5, label='X Errors', color='blue', edgecolor='black')
-    plt.title('Distribution of X Errors')
+    plt.hist(errors[:, 0], bins=30, alpha=0.5, label='X Errors', color='blue', edgecolor='black', density=True)
+    xmin, xmax = plt.xlim()
+    x = np.linspace(xmin, xmax, 100)
+    p = norm.pdf(x, np.mean(errors[:, 0]), np.std(errors[:, 0]))
+    plt.plot(x, p, 'k', linewidth=2)
+    plt.title(f'Distribution of X Errors\nStd error: {std_error_x:.2f}')
     plt.xlabel('Error Value')
-    plt.ylabel('Frequency')
+    plt.ylabel('Density')
     plt.legend()
 
     plt.subplot(1, 2, 2)
-    plt.hist(errors[:, 1], bins=30, alpha=0.5, label='Y Errors', color='red', edgecolor='black')
-    plt.title('Distribution of Y Errors')
+    plt.hist(errors[:, 1], bins=30, alpha=0.5, label='Y Errors', color='red', edgecolor='black', density=True)
+    xmin, xmax = plt.xlim()
+    x = np.linspace(xmin, xmax, 100)
+    p = norm.pdf(x, np.mean(errors[:, 1]), np.std(errors[:, 1]))
+    plt.plot(x, p, 'k', linewidth=2)
+    plt.title(f'Distribution of Y Errors\nStd error: {std_error_y:.2f}')
     plt.xlabel('Error Value')
-    plt.ylabel('Frequency')
+    plt.ylabel('Density')
     plt.legend()
 
     plt.tight_layout()
