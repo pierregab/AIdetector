@@ -26,11 +26,14 @@ def visualize_predictions(model, val_data, val_labels, use_real_positions=True, 
     sample_labels_rescaled = sample_labels * max_abs_value
     predicted_labels_rescaled = predicted_labels * max_abs_value
 
+    # Calculate errors
+    errors = predicted_labels_rescaled - sample_labels_rescaled
+
     # Calculate percentage errors
-    percentage_errors = 100 * (predicted_labels_rescaled - sample_labels_rescaled) / sample_labels_rescaled  # element-wise operation
+    percentage_errors = 100 * errors / sample_labels_rescaled
 
     # Calculate absolute errors
-    absolute_errors = np.abs(predicted_labels_rescaled - sample_labels_rescaled)
+    absolute_errors = np.abs(errors)
 
     # Extract x and y percentage errors
     x_errors = percentage_errors[:, 0]
@@ -135,3 +138,27 @@ def visualize_predictions(model, val_data, val_labels, use_real_positions=True, 
     plt.tight_layout()
     plt.savefig('distributions.png')  # Save the plot to a file
     plt.close()
+
+    # Plot error distributions
+    plt.figure(figsize=(14, 6))
+
+    plt.subplot(1, 2, 1)
+    plt.hist(errors[:, 0], bins=30, alpha=0.5, label='X Errors', color='blue', edgecolor='black')
+    plt.title('Distribution of X Errors')
+    plt.xlabel('Error Value')
+    plt.ylabel('Frequency')
+    plt.legend()
+
+    plt.subplot(1, 2, 2)
+    plt.hist(errors[:, 1], bins=30, alpha=0.5, label='Y Errors', color='red', edgecolor='black')
+    plt.title('Distribution of Y Errors')
+    plt.xlabel('Error Value')
+    plt.ylabel('Frequency')
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig('error_distributions.png')  # Save the plot to a file
+    plt.close()
+
+# Example usage (assuming you have the model and data loaded):
+# visualize_predictions(complex_model, val_data, val_labels)
