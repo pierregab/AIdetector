@@ -17,8 +17,8 @@ train_labels = train_labels / 16 if train_labels.max() > 1 else train_labels  # 
 train_data, val_data, train_labels, val_labels = train_test_split(train_data, train_labels, test_size=0.2, random_state=42)
 
 # Create tf.data.Dataset
-train_dataset = tf.data.Dataset.from_tensor_slices((train_data, train_labels))
-val_dataset = tf.data.Dataset.from_tensor_slices((val_data, val_labels))
+train_dataset = tf.data.Dataset.from_tensor_slices((train_data, train_labels)).batch(32).prefetch(tf.data.AUTOTUNE)
+val_dataset = tf.data.Dataset.from_tensor_slices((val_data, val_labels)).batch(32).prefetch(tf.data.AUTOTUNE)
 
 # Define the model with the best hyperparameters
 def build_best_model():
@@ -84,3 +84,7 @@ history = best_model.fit(train_dataset, validation_data=val_dataset, epochs=30, 
 
 # Plot the training history (assuming plot_training_history function is defined)
 plot_training_history(history)
+
+# Save the model at the end of training
+best_model.save('final_model.keras')
+
