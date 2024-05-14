@@ -3,6 +3,7 @@ from tensorflow.keras import layers, models, regularizers
 from Loading_data import load_and_process_data
 from Plot_training import plot_training_history
 from sklearn.model_selection import train_test_split
+import numpy as np
 
 # Load and process the data
 file_path = 'H01_labelCNN_50x50grid_RAWPM.bin'
