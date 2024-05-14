@@ -5,11 +5,6 @@ from Plot_training import plot_training_history
 from sklearn.model_selection import train_test_split
 import numpy as np
 
-# Debugging: Enable detailed logs
-import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '0'  # Enable detailed logs
-tf.debugging.set_log_device_placement(True)
-
 # Load and process the data
 file_path = 'H01_labelCNN_50x50grid_RAWPM.bin'
 train_data, train_labels = load_and_process_data(file_path, num_samples=1000000, energy_threshold=500)
