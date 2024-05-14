@@ -47,7 +47,6 @@ def visualize_predictions(model, val_data, val_labels, use_real_positions=True, 
     plt.title('Histogram of X Coordinate Percentage Errors')
     plt.xlabel('Percentage Error (%)')
     plt.ylabel('Frequency')
-
     plt.subplot(1, 2, 2)
     plt.hist(y_errors, bins=20, color='salmon', edgecolor='black')
     plt.title('Histogram of Y Coordinate Percentage Errors')
@@ -55,7 +54,8 @@ def visualize_predictions(model, val_data, val_labels, use_real_positions=True, 
     plt.ylabel('Frequency')
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig('percentage_errors_histogram.png')  # Save the plot to a file
+    plt.close()
 
     # Plot histograms of absolute errors
     plt.figure(figsize=(14, 6))
@@ -65,7 +65,6 @@ def visualize_predictions(model, val_data, val_labels, use_real_positions=True, 
     plt.title('Histogram of X Coordinate Absolute Errors')
     plt.xlabel('Absolute Error')
     plt.ylabel('Frequency')
-
     plt.subplot(1, 2, 2)
     plt.hist(y_abs_errors, bins=20, color='salmon', edgecolor='black')
     plt.title('Histogram of Y Coordinate Absolute Errors')
@@ -73,7 +72,8 @@ def visualize_predictions(model, val_data, val_labels, use_real_positions=True, 
     plt.ylabel('Frequency')
 
     plt.tight_layout()
-    plt.show()
+    plt.savefig('absolute_errors_histogram.png')  # Save the plot to a file
+    plt.close()
 
     # Scatter plots of actual vs predicted values
     plt.figure(figsize=(14, 6))
@@ -95,5 +95,5 @@ def visualize_predictions(model, val_data, val_labels, use_real_positions=True, 
              [sample_labels_rescaled[:, 1].min(), sample_labels_rescaled[:, 1].max()], 'r--')
 
     plt.tight_layout()
-    plt.show()
-
+    plt.savefig('actual_vs_predicted_scatter.png')  # Save the plot to a file
+    plt.close()
