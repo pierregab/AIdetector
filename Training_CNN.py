@@ -9,7 +9,6 @@ import numpy as np
 file_path = 'H01_labelCNN_50x50grid_RAWPM.bin'
 train_data, train_labels = load_and_process_data(file_path, num_samples=1000000, energy_threshold=500)
 
-
 # Make sure data is scaled appropriately
 train_data = train_data / np.max(train_data)  # Normalize by max value
 train_labels = train_labels / 16 if train_labels.max() > 1 else train_labels  # Normalize only if necessary
