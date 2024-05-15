@@ -5,7 +5,7 @@ from Plot_training import plot_training_history
 
 # Load and process the data
 file_path = 'H01_labelCNN_50x50grid_RAWPM.bin'
-train_dataset, val_dataset = load_and_process_data(file_path, use_real_positions=True, num_samples=None, test_size=0.2, batch_size=64)
+train_dataset, val_dataset = load_and_process_data(file_path, use_real_positions=True, num_samples=6000000, test_size=0.2, batch_size=64)
 
 # Define the model with the best hyperparameters
 def build_best_model():
@@ -44,7 +44,7 @@ def build_best_model():
     model.add(layers.BatchNormalization())
     model.add(layers.Dropout(0.2))
     model.add(layers.MaxPooling2D((2, 2)))
-    
+
     # Fourth Conv Block
     model.add(layers.Conv2D(
         filters=64,
@@ -54,18 +54,6 @@ def build_best_model():
         kernel_regularizer=regularizers.l2(0.0001)))
     model.add(layers.BatchNormalization())
     model.add(layers.Dropout(0.2))
-    model.add(layers.MaxPooling2D((2, 2)))
-    
-    # Fifth Conv Block
-    model.add(layers.Conv2D(
-        filters=64,
-        kernel_size=7,
-        activation='relu',
-        padding='same',
-        kernel_regularizer=regularizers.l2(0.0001)))
-    model.add(layers.BatchNormalization())
-    model.add(layers.Dropout(0.2))
-    model.add(layers.MaxPooling2D((2, 2)))
 
     # Flatten and Dense Layers
     model.add(layers.Flatten())
