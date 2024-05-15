@@ -2,8 +2,8 @@ import tensorflow as tf
 from tensorflow.keras import layers, models
 from tensorflow.keras.layers import LayerNormalization, Dense, Dropout, Add, Layer
 from tensorflow.keras.optimizers import Adam
-from kerastuner import HyperModel
-from kerastuner.tuners import RandomSearch
+from keras_tuner import HyperModel
+from keras_tuner.tuners import RandomSearch
 import numpy as np
 from Loading_data import load_and_process_data
 from Plot_training import plot_training_history
@@ -121,7 +121,8 @@ tuner = RandomSearch(
     max_trials=10,
     executions_per_trial=2,
     directory='vit_tuning',
-    project_name='vision_transformer'
+    project_name='vision_transformer',
+    overwrite=True  # Set overwrite=True to start a new search
 )
 
 # Load and preprocess the data
@@ -143,8 +144,12 @@ val_dataset = val_dataset.map(lambda x, y: (layers.Rescaling(1./255)(x), y))
 early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
 checkpoint = tf.keras.callbacks.ModelCheckpoint('vit_model.keras', save_best_only=True, monitor='val_loss', mode='min')
 
+# Set verbose logging
+import logging
+logging.getLogger("tensorflow").setLevel(logging.INFO)
+
 # Run the tuner search
-tuner.search(train_dataset, validation_data=val_dataset, epochs=10, callbacks=[early_stopping, checkpoint])
+tuner.search(train_dataset, validation_data=val_dataset, epochs=10, callbacks=[early_stopping, checkpoint], verbose=1)
 
 # Get the optimal hyperparameters
 best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]

@@ -61,7 +61,7 @@ def build_model(hp):
 # Instantiate the tuner
 tuner = kt.Hyperband(
     build_model,
-    objective='val_loss',
+    objective='val_mae',
     max_epochs=20,
     factor=3,
     directory='keras_tuner_dir',

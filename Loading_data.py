@@ -2,13 +2,13 @@ import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
-def load_and_process_data(file_path, num_samples=1000000, energy_threshold=500, use_real_positions=True, test_size=0.2, batch_size=32):
+def load_and_process_data(file_path, num_samples=None, energy_threshold=500, use_real_positions=True, test_size=0.2, batch_size=32):
     """
     Load data from a binary file and process it for training.
 
     Parameters:
     - file_path (str): Path to the binary file.
-    - num_samples (int): Number of samples to extract. Default is 1000000.
+    - num_samples (int, optional): Number of samples to extract. Default is None, which means load all data.
     - energy_threshold (float): Threshold for energy to filter records. Default is 500.
     - use_real_positions (bool): Flag to choose between real positions and ML predicted positions. Default is True.
     - test_size (float): Proportion of the dataset to include in the validation split. Default is 0.2.
@@ -33,8 +33,11 @@ def load_and_process_data(file_path, num_samples=1000000, energy_threshold=500, 
     # Calculate number of records in the file
     total_records = data.size
 
-    # Calculate equidistant indices for num_samples
-    indices = np.linspace(0, total_records - 1, num_samples, dtype=int)
+    # Determine the indices to sample
+    if num_samples is not None and num_samples < total_records:
+        indices = np.linspace(0, total_records - 1, num_samples, dtype=int)
+    else:
+        indices = np.arange(total_records)
 
     # Initialize lists for dynamic data collection
     train_data_list = []
@@ -76,13 +79,26 @@ def load_and_process_data(file_path, num_samples=1000000, energy_threshold=500, 
 if __name__ == "__main__":
     # Example usage
     file_path = 'H01_labelCNN_50x50grid_RAWPM.bin'
-    train_dataset, val_dataset = load_and_process_data(file_path, use_real_positions=True)
+    
+    # Load all data
+    train_dataset_all, val_dataset_all = load_and_process_data(file_path, use_real_positions=True)
+    
+    # Load a specific number of samples
+    train_dataset_samples, val_dataset_samples = load_and_process_data(file_path, num_samples=100000, use_real_positions=True)
 
-    # Example usage: Check the dataset
-    for batch in train_dataset.take(1):
-        print("Train batch data shape:", batch[0].shape)
-        print("Train batch labels shape:", batch[1].shape)
+    # Example usage: Check the datasets
+    for batch in train_dataset_all.take(1):
+        print("Train batch data shape (all):", batch[0].shape)
+        print("Train batch labels shape (all):", batch[1].shape)
 
-    for batch in val_dataset.take(1):
-        print("Validation batch data shape:", batch[0].shape)
-        print("Validation batch labels shape:", batch[1].shape)
+    for batch in val_dataset_all.take(1):
+        print("Validation batch data shape (all):", batch[0].shape)
+        print("Validation batch labels shape (all):", batch[1].shape)
+
+    for batch in train_dataset_samples.take(1):
+        print("Train batch data shape (samples):", batch[0].shape)
+        print("Train batch labels shape (samples):", batch[1].shape)
+
+    for batch in val_dataset_samples.take(1):
+        print("Validation batch data shape (samples):", batch[0].shape)
+        print("Validation batch labels shape (samples):", batch[1].shape)
