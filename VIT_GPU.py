@@ -9,7 +9,7 @@ from Plot_training import plot_training_history
 # Helper function to create the Vision Transformer model
 def mlp(x, hidden_units, dropout_rate):
     for units in hidden_units:
-        x = Dense(units, activation=tf.nn.gelu)(x)
+        x = Dense(units, activation=tf.nn.gelu, kernel_regularizer=regularizers.l2(1e-4))(x)
         x = Dropout(dropout_rate)(x)
     return x
 
@@ -21,7 +21,7 @@ def transformer_encoder(inputs, num_heads, key_dim, ff_dim, dropout=0):
     
     # Ensure the dimensions match for the residual connection
     if x.shape[-1] != inputs.shape[-1]:
-        inputs = Dense(x.shape[-1])(inputs)
+        inputs = Dense(x.shape[-1], kernel_regularizer=regularizers.l2(1e-4))(inputs)
         
     res = Add()([x, inputs])
 
@@ -29,11 +29,11 @@ def transformer_encoder(inputs, num_heads, key_dim, ff_dim, dropout=0):
     x = LayerNormalization(epsilon=1e-6)(res)
     x = mlp(x, [ff_dim], dropout)
     if x.shape[-1] != res.shape[-1]:
-        res = Dense(x.shape[-1])(res)
+        res = Dense(x.shape[-1], kernel_regularizer=regularizers.l2(1e-4))(res)
     return Add()([x, res])
 
-def build_vit_model(input_shape, num_classes, patch_size=4, transformer_layers=8, 
-                    num_heads=8, key_dim=64, ff_dim=128, mlp_units=[512], dropout=0.1):
+def build_vit_model(input_shape, num_classes, patch_size=4, transformer_layers=6, 
+                    num_heads=6, key_dim=64, ff_dim=128, mlp_units=[256], dropout=0.2):
     inputs = layers.Input(shape=input_shape)
     # Create patches.
     patches = Patches(patch_size)(inputs)
@@ -117,7 +117,7 @@ checkpoint = tf.keras.callbacks.ModelCheckpoint(
 )
 
 # Train the model
-history = vit_model.fit(train_dataset, validation_data=val_dataset, epochs=50, callbacks=[early_stopping, checkpoint])
+history = vit_model.fit(train_dataset, validation_data=val_dataset, epochs=20, callbacks=[early_stopping, checkpoint])
 
 # Plot the training history (assuming plot_training_history function is defined)
 plot_training_history(history)
