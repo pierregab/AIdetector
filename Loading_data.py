@@ -1,6 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import IsolationForest
 
 def load_and_process_data(file_path, num_samples=None, energy_threshold=500, use_real_positions=True, test_size=0.2, batch_size=32):
     """
@@ -58,13 +60,26 @@ def load_and_process_data(file_path, num_samples=None, energy_threshold=500, use
     # Convert lists to numpy arrays for training
     train_data = np.array(train_data_list)
     train_labels = np.array(train_labels_list)
-    
-    # Normalize train_labels to fit within -1 to 1
-    max_abs_value = np.max(np.abs(train_labels))
-    train_labels = train_labels / max_abs_value
-    
+
+    # Normalize train_labels to fit within 0 to 1
+    train_labels = (train_labels - train_labels.min()) / (train_labels.max() - train_labels.min())
+
     # Normalize train_data to fit within 0 to 1
     train_data = train_data / np.max(train_data)
+
+    # Standardize train_data
+    scaler = StandardScaler()
+    train_data_shape = train_data.shape
+    train_data = train_data.reshape(-1, train_data.shape[-1])  # Flatten for scaling
+    train_data = scaler.fit_transform(train_data)
+    train_data = train_data.reshape(train_data_shape)
+
+    # Outlier detection and removal
+    clf = IsolationForest(contamination=0.05)  # Adjust contamination rate as needed
+    outliers = clf.fit_predict(train_labels)
+    mask = outliers != -1
+    train_data = train_data[mask]
+    train_labels = train_labels[mask]
 
     # Split the data into training and validation sets
     train_data, val_data, train_labels, val_labels = train_test_split(train_data, train_labels, test_size=test_size, random_state=42)
@@ -80,25 +95,34 @@ if __name__ == "__main__":
     # Example usage
     file_path = 'H01_labelCNN_50x50grid_RAWPM.bin'
     
-    # Load all data
-    train_dataset_all, val_dataset_all = load_and_process_data(file_path, use_real_positions=True)
-    
     # Load a specific number of samples
-    train_dataset_samples, val_dataset_samples = load_and_process_data(file_path, num_samples=100000, use_real_positions=True)
+    train_dataset_samples, val_dataset_samples = load_and_process_data(file_path, num_samples=1000, use_real_positions=True)
 
-    # Example usage: Check the datasets
-    for batch in train_dataset_all.take(1):
-        print("Train batch data shape (all):", batch[0].shape)
-        print("Train batch labels shape (all):", batch[1].shape)
-
-    for batch in val_dataset_all.take(1):
-        print("Validation batch data shape (all):", batch[0].shape)
-        print("Validation batch labels shape (all):", batch[1].shape)
-
+    # Print some samples from the training dataset
+    print("Training Data Samples:")
     for batch in train_dataset_samples.take(1):
-        print("Train batch data shape (samples):", batch[0].shape)
-        print("Train batch labels shape (samples):", batch[1].shape)
+        train_data_batch, train_labels_batch = batch
+        print("Train data shape:", train_data_batch.shape)
+        print("Train labels shape:", train_labels_batch.shape)
+        print("Train data (first sample):", train_data_batch[0].numpy())
+        print("Train labels (first sample):", train_labels_batch[0].numpy())
+
+    # Print some samples from the validation dataset
+    print("\nValidation Data Samples:")
+    for batch in val_dataset_samples.take(1):
+        val_data_batch, val_labels_batch = batch
+        print("Validation data shape:", val_data_batch.shape)
+        print("Validation labels shape:", val_labels_batch.shape)
+        print("Validation data (first sample):", val_data_batch[0].numpy())
+        print("Validation labels (first sample):", val_labels_batch[0].numpy())
+
+    # Check the ranges of the data
+    for batch in train_dataset_samples.take(1):
+        train_data_batch, train_labels_batch = batch
+        print("\nRange of training data (first batch): min =", np.min(train_data_batch.numpy()), ", max =", np.max(train_data_batch.numpy()))
+        print("Range of training labels (first batch): min =", np.min(train_labels_batch.numpy()), ", max =", np.max(train_labels_batch.numpy()))
 
     for batch in val_dataset_samples.take(1):
-        print("Validation batch data shape (samples):", batch[0].shape)
-        print("Validation batch labels shape (samples):", batch[1].shape)
+        val_data_batch, val_labels_batch = batch
+        print("\nRange of validation data (first batch): min =", np.min(val_data_batch.numpy()), ", max =", np.max(val_data_batch.numpy()))
+        print("Range of validation labels (first batch): min =", np.min(val_labels_batch.numpy()), ", max =", np.max(val_labels_batch.numpy()))

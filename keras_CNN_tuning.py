@@ -9,7 +9,7 @@ import numpy as np
 
 # Load and process the data
 file_path = 'H01_labelCNN_50x50grid_RAWPM.bin'
-train_dataset, val_dataset = load_and_process_data(file_path, num_samples=100 00, energy_threshold=500)
+train_dataset, val_dataset = load_and_process_data(file_path, num_samples=10000, energy_threshold=500)
 
 # Define the model builder for hyperparameter tuning
 def model_builder(hp):

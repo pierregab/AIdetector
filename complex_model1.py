@@ -1,78 +1,75 @@
 import tensorflow as tf
 from tensorflow.keras import layers, models, regularizers
-from Loading_data import load_and_process_data
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 from Plot_training import plot_training_history
-import numpy as np
+from Loading_data import load_and_process_data
 
-# Load and process the data
-file_path = 'H01_labelCNN_50x50grid_RAWPM.bin'
-train_dataset, val_dataset = load_and_process_data(file_path, use_real_positions=False, num_samples=100000, test_size=0.2, batch_size=64)
+# Define the model with the best hyperparameters found
+def build_best_model():
+    model = models.Sequential()
+    model.add(layers.Input(shape=(16, 16, 2)))
+    
+    # Adding convolutional blocks
+    model.add(layers.Conv2D(192, kernel_size=5, activation='relu', padding='same', kernel_regularizer=regularizers.l2(0.0001)))
+    model.add(layers.BatchNormalization())
+    model.add(layers.MaxPooling2D((2, 2), padding='same'))
+    model.add(layers.Dropout(0.3))  # Reduced dropout
 
-# Define a dense block
-def dense_block(x, num_layers, growth_rate):
-    for _ in range(num_layers):
-        cb = layers.BatchNormalization()(x)
-        cb = layers.ReLU()(cb)
-        cb = layers.Conv2D(growth_rate, kernel_size=3, padding='same', kernel_regularizer=regularizers.l2(0.0001))(cb)
-        x = layers.Concatenate()([x, cb])
-    return x
+    model.add(layers.Conv2D(224, kernel_size=5, activation='relu', padding='same', kernel_regularizer=regularizers.l2(0.0001)))
+    model.add(layers.BatchNormalization())
+    model.add(layers.MaxPooling2D((2, 2), padding='same'))
+    model.add(layers.Dropout(0.3))  # Reduced dropout
 
-# Define a transition block
-def transition_block(x, reduction):
-    x = layers.BatchNormalization()(x)
-    x = layers.ReLU()(x)
-    x = layers.Conv2D(int(x.shape[-1] * reduction), kernel_size=1, padding='same', kernel_regularizer=regularizers.l2(0.0001))(x)
-    x = layers.AvgPool2D(pool_size=2, strides=2)(x)
-    return x
+    model.add(layers.Conv2D(32, kernel_size=5, activation='relu', padding='same', kernel_regularizer=regularizers.l2(0.0001)))
+    model.add(layers.BatchNormalization())
+    model.add(layers.MaxPooling2D((2, 2), padding='same'))
+    model.add(layers.Dropout(0.3))  # Reduced dropout
 
-# Define the more advanced DenseNet-like model
-def build_densenet_model():
-    inputs = layers.Input(shape=(16, 16, 2))
-    
-    # Initial Conv Layer
-    x = layers.Conv2D(64, kernel_size=3, strides=1, padding='same', kernel_regularizer=regularizers.l2(0.0001))(inputs)
-    x = layers.BatchNormalization()(x)
-    x = layers.ReLU()(x)
-    
-    # Dense Blocks with Transition Layers
-    x = dense_block(x, num_layers=4, growth_rate=32)
-    x = transition_block(x, reduction=0.5)
-    x = dense_block(x, num_layers=4, growth_rate=32)
-    x = transition_block(x, reduction=0.5)
-    x = dense_block(x, num_layers=4, growth_rate=32)
-    
-    # Global Average Pooling and Dense Layers
-    x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dense(256, activation='relu')(x)
-    x = layers.Dropout(0.4)(x)
-    x = layers.Dense(128, activation='relu')(x)
-    x = layers.Dropout(0.3)(x)
-    outputs = layers.Dense(2, kernel_regularizer=regularizers.l2(0.0001))(x)
-    
-    model = models.Model(inputs, outputs)
-    
-    # Compile the model with a lower learning rate
-    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.005),
-                  loss='mse',
+    model.add(layers.Conv2D(128, kernel_size=3, activation='relu', padding='same', kernel_regularizer=regularizers.l2(0.0001)))
+    model.add(layers.BatchNormalization())
+    model.add(layers.MaxPooling2D((2, 2), padding='same'))
+    model.add(layers.Dropout(0.2))  # Reduced dropout
+
+    model.add(layers.Conv2D(128, kernel_size=3, activation='relu', padding='same', kernel_regularizer=regularizers.l2(0.0001)))
+    model.add(layers.BatchNormalization())
+    model.add(layers.MaxPooling2D((2, 2), padding='same'))
+    model.add(layers.Dropout(0.2))  # Reduced dropout
+
+    # Flatten the output and add dense layers
+    model.add(layers.Flatten())
+
+    model.add(layers.Dense(320, activation='relu'))
+    model.add(layers.Dropout(0.3))  # Reduced dropout
+
+    model.add(layers.Dense(320, activation='relu'))
+    model.add(layers.Dropout(0.3))  # Reduced dropout
+
+    model.add(layers.Dense(448, activation='relu'))
+    model.add(layers.Dropout(0.2))  # Reduced dropout
+
+    model.add(layers.Dense(2, activation='sigmoid'))  # Sigmoid activation for [0, 1] output
+
+    model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
+                  loss='mse',  # MSE is suitable for regression even with sigmoid
                   metrics=['mae'])
-    
+
     return model
 
-# Build the DenseNet-like model
-densenet_model = build_densenet_model()
+# Build the best model and print the summary
+best_model = build_best_model()
+best_model.summary()
 
-# Display the model summary
-densenet_model.summary()
+# Define early stopping and checkpoint callbacks
+early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+checkpoint = ModelCheckpoint('best_model.keras', save_best_only=True, monitor='val_loss', mode='min')
 
-# Define early stopping and checkpoint
-early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
-checkpoint = tf.keras.callbacks.ModelCheckpoint('densenet_model.keras', save_best_only=True, monitor='val_loss', mode='min')
+# Train the model
+file_path = 'H01_labelCNN_50x50grid_RAWPM.bin'
+train_dataset, val_dataset = load_and_process_data(file_path, num_samples=1000000, use_real_positions=True)
+history = best_model.fit(train_dataset, validation_data=val_dataset, epochs=30, callbacks=[early_stopping, checkpoint])
 
-# Train the DenseNet-like model
-history = densenet_model.fit(train_dataset, validation_data=val_dataset, epochs=50, callbacks=[early_stopping, checkpoint])
+# Save the model
+best_model.save('final_model.keras')
 
-# Plot the training history
+# Function to plot training history
 plot_training_history(history)
-
-# Save the model at the end of training
-densenet_model.save('final_densenet_model.keras')

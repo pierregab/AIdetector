@@ -32,40 +32,6 @@ def transformer_encoder(inputs, num_heads, key_dim, ff_dim, dropout=0):
         res = Dense(x.shape[-1])(res)
     return Add()([x, res])
 
-@tf.keras.utils.register_keras_serializable()
-class Patches(Layer):
-    def __init__(self, patch_size):
-        super(Patches, self).__init__()
-        self.patch_size = patch_size
-
-    def call(self, images):
-        batch_size = tf.shape(images)[0]
-        patches = tf.image.extract_patches(
-            images=images,
-            sizes=[1, self.patch_size, self.patch_size, 1],
-            strides=[1, self.patch_size, self.patch_size, 1],
-            rates=[1, 1, 1, 1],
-            padding="VALID",
-        )
-        patch_dims = patches.shape[-1]
-        patches = tf.reshape(patches, [batch_size, -1, patch_dims])
-        return patches
-
-@tf.keras.utils.register_keras_serializable()
-class PatchEncoder(Layer):
-    def __init__(self, num_patches, projection_dim):
-        super(PatchEncoder, self).__init__()
-        self.num_patches = num_patches
-        self.projection = Dense(units=projection_dim)
-        self.position_embedding = layers.Embedding(
-            input_dim=num_patches, output_dim=projection_dim
-        )
-
-    def call(self, patches):
-        positions = tf.range(start=0, limit=self.num_patches, delta=1)
-        encoded = self.projection(patches) + self.position_embedding(positions)
-        return encoded
-
 def build_vit_model(input_shape, num_classes, patch_size=4, transformer_layers=8, 
                     num_heads=8, key_dim=64, ff_dim=128, mlp_units=[512], dropout=0.1):
     inputs = layers.Input(shape=input_shape)
@@ -91,12 +57,44 @@ def build_vit_model(input_shape, num_classes, patch_size=4, transformer_layers=8
     model = tf.keras.Model(inputs=inputs, outputs=logits)
     return model
 
+class Patches(Layer):
+    def __init__(self, patch_size):
+        super(Patches, self).__init__()
+        self.patch_size = patch_size
+
+    def call(self, images):
+        batch_size = tf.shape(images)[0]
+        patches = tf.image.extract_patches(
+            images=images,
+            sizes=[1, self.patch_size, self.patch_size, 1],
+            strides=[1, self.patch_size, self.patch_size, 1],
+            rates=[1, 1, 1, 1],
+            padding="VALID",
+        )
+        patch_dims = patches.shape[-1]
+        patches = tf.reshape(patches, [batch_size, -1, patch_dims])
+        return patches
+
+class PatchEncoder(Layer):
+    def __init__(self, num_patches, projection_dim):
+        super(PatchEncoder, self).__init__()
+        self.num_patches = num_patches
+        self.projection = Dense(units=projection_dim)
+        self.position_embedding = layers.Embedding(
+            input_dim=num_patches, output_dim=projection_dim
+        )
+
+    def call(self, patches):
+        positions = tf.range(start=0, limit=self.num_patches, delta=1)
+        encoded = self.projection(patches) + self.position_embedding(positions)
+        return encoded
+
 input_shape = (16, 16, 2)
 num_classes = 2
 vit_model = build_vit_model(input_shape, num_classes)
 
 # Compile the model
-vit_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+vit_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0002),
                   loss='mse',
                   metrics=['mae'])
 
@@ -106,11 +104,17 @@ vit_model.summary()
 file_path = 'H01_labelCNN_50x50grid_RAWPM.bin'
 
 # Assuming load_and_process_data is a predefined function
-train_dataset, val_dataset = load_and_process_data(file_path, use_real_positions=True, num_samples=10000, test_size=0.2, batch_size=64)
+train_dataset, val_dataset = load_and_process_data(file_path, use_real_positions=True, num_samples=100000, test_size=0.2, batch_size=128)
 
 # Define early stopping and checkpoint
 early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
-checkpoint = tf.keras.callbacks.ModelCheckpoint('vit_model.keras', save_best_only=True, monitor='val_loss', mode='min')
+checkpoint = tf.keras.callbacks.ModelCheckpoint(
+    'vit_model.h5',  # Use .h5 extension to specify HDF5 format
+    save_best_only=True, 
+    monitor='val_loss', 
+    save_weights_only=False,  
+    save_format='h5'  # Explicitly set the save format to h5
+)
 
 # Train the model
 history = vit_model.fit(train_dataset, validation_data=val_dataset, epochs=50, callbacks=[early_stopping, checkpoint])
@@ -119,4 +123,4 @@ history = vit_model.fit(train_dataset, validation_data=val_dataset, epochs=50, c
 plot_training_history(history)
 
 # Save the model at the end of training
-vit_model.save('final_vit_model.keras')
+vit_model.save('final_vit_model.h5', save_format='h5')

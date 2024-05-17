@@ -52,7 +52,7 @@ def build_vit_model(input_shape, num_classes, patch_size=4, transformer_layers=8
     # Add MLP.
     features = mlp(representation, mlp_units, dropout)
     # Classify outputs.
-    logits = layers.Dense(num_classes)(features)
+    logits = layers.Dense(num_classes, activation='sigmoid')(features)
     # Create the Keras model.
     model = tf.keras.Model(inputs=inputs, outputs=logits)
     return model
@@ -94,7 +94,7 @@ num_classes = 2
 vit_model = build_vit_model(input_shape, num_classes)
 
 # Compile the model
-vit_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0001),
+vit_model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=0.0002),
                   loss='mse',
                   metrics=['mae'])
 
@@ -104,18 +104,7 @@ vit_model.summary()
 file_path = 'H01_labelCNN_50x50grid_RAWPM.bin'
 
 # Assuming load_and_process_data is a predefined function
-train_dataset, val_dataset = load_and_process_data(file_path, use_real_positions=True, num_samples=100000, test_size=0.2, batch_size=64)
-
-# Data Augmentation
-data_augmentation = tf.keras.Sequential([
-    layers.Rescaling(1./255),
-    layers.RandomFlip("horizontal_and_vertical"),
-    layers.RandomRotation(0.2),
-    layers.RandomZoom(0.2),
-])
-
-train_dataset = train_dataset.map(lambda x, y: (data_augmentation(x, training=True), y))
-val_dataset = val_dataset.map(lambda x, y: (layers.Rescaling(1./255)(x), y))
+train_dataset, val_dataset = load_and_process_data(file_path, use_real_positions=True, num_samples=100000, test_size=0.2, batch_size=128)
 
 # Define early stopping and checkpoint
 early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)

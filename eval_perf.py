@@ -14,7 +14,7 @@ val_data = np.concatenate([data.numpy() for data, _ in val_dataset], axis=0)
 val_labels = np.concatenate([labels.numpy() for _, labels in val_dataset], axis=0)
 
 # Load the trained model
-model = tf.keras.models.load_model('final_model.keras')
+model = tf.keras.models.load_model('best_model.h5')
 
 # Visualize the model's performance
 visualize_predictions(model, val_data, val_labels, use_real_positions=False)
